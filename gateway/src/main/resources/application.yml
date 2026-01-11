@@ -5,6 +5,13 @@ spring:
   application:
     name: api-gateway
 
+  webflux:
+    static-path-pattern: /static/**
+
+  web:
+    resources:
+      static-locations: classpath:/static/
+
   security:
     oauth2:
       resourceserver:
@@ -24,3 +31,38 @@ spring:
           uri: ${ORDER_SERVICE_URI:http://localhost:8082}
           predicates:
             - Path=/orders/**
+
+        - id: health-dashboard
+          uri: ${GATEWAY_URI:http://localhost:8085}
+          predicates:
+            - Path=/dashboard/**
+          filters:
+            - StripPrefix=1
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,gateway
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+    gateway:
+      enabled: true
+  info:
+    env:
+      enabled: true
+
+info:
+  app:
+    name: API Gateway
+    description: Central gateway for microservices
+    version: 1.0.0
+
+logging:
+  level:
+    ma.enset.gateway: DEBUG
+    org.springframework.cloud.gateway: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"

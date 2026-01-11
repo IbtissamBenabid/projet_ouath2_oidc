@@ -1,0 +1,19 @@
+# Trivy Security Scan Reports
+
+This directory stores Trivy vulnerability scan reports for Docker images.
+
+## Report Format
+
+Reports are generated in both:
+- `.txt` - Human-readable table format
+- `.json` - Machine-parseable JSON format
+
+## File Naming Convention
+
+`<image-name>_<timestamp>.txt`
+
+Example: `product-service_latest_20260111_143022.txt`
+
+## Running Scans
+
+See `scripts/trivy-scan.ps1` or `scripts/trivy-scan.sh`

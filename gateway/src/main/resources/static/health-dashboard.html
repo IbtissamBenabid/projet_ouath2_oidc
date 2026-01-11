@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏥 Health Dashboard - Microservices</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #fff;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        header p {
+            color: #8892b0;
+        }
+        .overall-status {
+            text-align: center;
+            padding: 30px;
+            border-radius: 16px;
+            margin-bottom: 30px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .overall-status.up {
+            border-color: #10b981;
+            box-shadow: 0 0 30px rgba(16, 185, 129, 0.2);
+        }
+        .overall-status.down {
+            border-color: #ef4444;
+            box-shadow: 0 0 30px rgba(239, 68, 68, 0.2);
+        }
+        .overall-status.degraded {
+            border-color: #f59e0b;
+            box-shadow: 0 0 30px rgba(245, 158, 11, 0.2);
+        }
+        .status-icon {
+            font-size: 4rem;
+            margin-bottom: 10px;
+        }
+        .status-text {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .service-card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 24px;
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .service-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+        .service-card.up {
+            border-left: 4px solid #10b981;
+        }
+        .service-card.down {
+            border-left: 4px solid #ef4444;
+        }
+        .service-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .service-name {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+        .service-status {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        .service-status.up {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+        }
+        .service-status.down {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+        .service-details {
+            color: #8892b0;
+            font-size: 0.9rem;
+        }
+        .service-details p {
+            margin: 8px 0;
+            display: flex;
+            justify-content: space-between;
+        }
+        .service-details span {
+            color: #fff;
+        }
+        .refresh-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .refresh-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+        .refresh-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .timestamp {
+            text-align: center;
+            color: #8892b0;
+            margin-top: 20px;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+        }
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(255,255,255,0.1);
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .endpoints-section {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 24px;
+            margin-top: 30px;
+        }
+        .endpoints-section h3 {
+            margin-bottom: 16px;
+        }
+        .endpoint-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 10px;
+        }
+        .endpoint-item {
+            background: rgba(0,0,0,0.2);
+            padding: 12px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 0.9rem;
+        }
+        .endpoint-item a {
+            color: #667eea;
+            text-decoration: none;
+        }
+        .endpoint-item a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏥 Health Dashboard</h1>
+            <p>Real-time monitoring for Microservices Platform</p>
+        </header>
+
+        <div id="overall-status" class="overall-status">
+            <div class="loading">
+                <div class="spinner"></div>
+                <p>Checking services health...</p>
+            </div>
+        </div>
+
+        <div style="text-align: center; margin-bottom: 20px;">
+            <button class="refresh-btn" onclick="refreshHealth()" id="refresh-btn">
+                🔄 Refresh Status
+            </button>
+        </div>
+
+        <div id="services-grid" class="services-grid">
+            <!-- Services will be loaded here -->
+        </div>
+
+        <div class="endpoints-section">
+            <h3>📡 Health Endpoints</h3>
+            <div class="endpoint-list">
+                <div class="endpoint-item">
+                    <strong>Gateway:</strong><br>
+                    <a href="http://localhost:8085/actuator/health" target="_blank">/actuator/health</a>
+                </div>
+                <div class="endpoint-item">
+                    <strong>Product Service:</strong><br>
+                    <a href="http://localhost:8081/actuator/health" target="_blank">/actuator/health</a>
+                </div>
+                <div class="endpoint-item">
+                    <strong>Order Service:</strong><br>
+                    <a href="http://localhost:8082/actuator/health" target="_blank">/actuator/health</a>
+                </div>
+                <div class="endpoint-item">
+                    <strong>Dashboard API:</strong><br>
+                    <a href="http://localhost:8085/dashboard/health" target="_blank">/dashboard/health</a>
+                </div>
+            </div>
+        </div>
+
+        <p class="timestamp" id="timestamp">Last updated: Never</p>
+    </div>
+
+    <script>
+        const GATEWAY_URL = 'http://localhost:8085';
+        
+        const services = [
+            { name: 'API Gateway', port: 8085, url: `${GATEWAY_URL}/actuator/health`, icon: '🚪' },
+            { name: 'Product Service', port: 8081, url: 'http://localhost:8081/actuator/health', icon: '📦' },
+            { name: 'Order Service', port: 8082, url: 'http://localhost:8082/actuator/health', icon: '📋' },
+            { name: 'Keycloak', port: 8088, url: 'http://localhost:8088/health', icon: '🔐' }
+        ];
+
+        async function checkServiceHealth(service) {
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 5000);
+                
+                const response = await fetch(service.url, {
+                    signal: controller.signal,
+                    mode: 'cors'
+                });
+                clearTimeout(timeoutId);
+                
+                if (response.ok) {
+                    const data = await response.json().catch(() => ({}));
+                    return {
+                        ...service,
+                        status: 'UP',
+                        details: data
+                    };
+                }
+                return { ...service, status: 'DOWN', error: `HTTP ${response.status}` };
+            } catch (error) {
+                return { ...service, status: 'DOWN', error: error.message };
+            }
+        }
+
+        async function refreshHealth() {
+            const btn = document.getElementById('refresh-btn');
+            btn.disabled = true;
+            btn.textContent = '⏳ Checking...';
+
+            const results = await Promise.all(services.map(checkServiceHealth));
+            
+            const upCount = results.filter(r => r.status === 'UP').length;
+            const totalCount = results.length;
+            
+            let overallStatus = 'up';
+            let statusIcon = '✅';
+            let statusText = 'All Systems Operational';
+            
+            if (upCount === 0) {
+                overallStatus = 'down';
+                statusIcon = '❌';
+                statusText = 'All Systems Down';
+            } else if (upCount < totalCount) {
+                overallStatus = 'degraded';
+                statusIcon = '⚠️';
+                statusText = `Degraded (${upCount}/${totalCount} services up)`;
+            }
+
+            document.getElementById('overall-status').innerHTML = `
+                <div class="status-icon">${statusIcon}</div>
+                <div class="status-text">${statusText}</div>
+            `;
+            document.getElementById('overall-status').className = `overall-status ${overallStatus}`;
+
+            const servicesHtml = results.map(service => `
+                <div class="service-card ${service.status.toLowerCase()}">
+                    <div class="service-header">
+                        <span class="service-name">${service.icon} ${service.name}</span>
+                        <span class="service-status ${service.status.toLowerCase()}">${service.status}</span>
+                    </div>
+                    <div class="service-details">
+                        <p>Port: <span>${service.port}</span></p>
+                        <p>URL: <span>${service.url}</span></p>
+                        ${service.error ? `<p>Error: <span style="color:#ef4444">${service.error}</span></p>` : ''}
+                    </div>
+                </div>
+            `).join('');
+
+            document.getElementById('services-grid').innerHTML = servicesHtml;
+            document.getElementById('timestamp').textContent = `Last updated: ${new Date().toLocaleString()}`;
+
+            btn.disabled = false;
+            btn.textContent = '🔄 Refresh Status';
+        }
+
+        // Initial load
+        refreshHealth();
+        
+        // Auto-refresh every 30 seconds
+        setInterval(refreshHealth, 30000);
+    </script>
+</body>
+</html>
