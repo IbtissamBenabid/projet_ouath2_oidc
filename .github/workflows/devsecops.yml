@@ -169,10 +169,38 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Download build artifacts
-        uses: actions/download-artifact@v4
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
         with:
-          name: build-artifacts
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Build Product Service JAR
+        run: |
+          cd product-service
+          ./mvnw clean package -DskipTests
+
+      - name: Build Order Service JAR
+        run: |
+          cd order-service
+          ./mvnw clean package -DskipTests
+
+      - name: Build Gateway JAR
+        run: |
+          cd gateway
+          ./mvnw clean package -DskipTests
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Build React App
+        run: |
+          cd react-app
+          npm ci
+          npm run build
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3

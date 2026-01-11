@@ -64,7 +64,7 @@ Write-Host "Trivy version: " -NoNewline -ForegroundColor Green
 Write-Host $trivyVersion
 Write-Host ""
 
-$FailedScans = 0
+$script:FailedScans = 0
 $ScanResults = @()
 
 function Scan-DockerImage {
@@ -73,15 +73,15 @@ function Scan-DockerImage {
     $reportFile = Join-Path $OutputDir ($ImageName -replace '[:/]', '_')
     $reportFile = "${reportFile}_$Timestamp"
     
-    Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Blue
+    Write-Host "--------------------------------------------" -ForegroundColor Blue
     Write-Host "Scanning: " -NoNewline -ForegroundColor Blue
     Write-Host $ImageName -ForegroundColor Yellow
-    Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Blue
+    Write-Host "--------------------------------------------" -ForegroundColor Blue
     
     # Check if image exists
     $imageExists = docker image inspect $ImageName 2>$null
     if (-not $imageExists) {
-        Write-Host "⚠ Image not found locally. Attempting to build..." -ForegroundColor Yellow
+        Write-Host "[!] Image not found locally. Attempting to build..." -ForegroundColor Yellow
         
         switch -Wildcard ($ImageName) {
             "product-service*" { docker build -t $ImageName ./product-service 2>$null }
@@ -92,39 +92,46 @@ function Scan-DockerImage {
     }
     
     # Run Trivy scan
-    try {
-        if ($Format -eq "json") {
-            & trivy image --severity $Severity --format json --output "${reportFile}.json" $ImageName 2>$null
-            Write-Host "✓ JSON report saved: ${reportFile}.json" -ForegroundColor Green
+    $scanSuccess = $true
+    
+    if ($Format -eq "json") {
+        $jsonResult = & trivy image --severity $Severity --format json --output "${reportFile}.json" $ImageName 2>&1
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "[OK] JSON report saved: ${reportFile}.json" -ForegroundColor Green
         }
-        
-        # Table output
-        & trivy image --severity $Severity --format table $ImageName 2>&1 | Tee-Object -FilePath "${reportFile}.txt"
-        
+    }
+    
+    # Table output
+    $tableResult = & trivy image --severity $Severity --format table $ImageName 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        $scanSuccess = $false
+    }
+    
+    $tableResult | Tee-Object -FilePath "${reportFile}.txt"
+    
+    if ($scanSuccess) {
         return @{
             Image = $ImageName
             Status = "Success"
             ReportFile = $reportFile
         }
     }
-    catch {
-        Write-Host "✗ Failed to scan $ImageName" -ForegroundColor Red
+    else {
+        Write-Host "[X] Failed to scan $ImageName" -ForegroundColor Red
         $script:FailedScans++
         return @{
             Image = $ImageName
             Status = "Failed"
-            Error = $_.Exception.Message
+            Error = "Scan failed"
         }
     }
 }
 
 # Build images first
 Write-Host "Building Docker images..." -ForegroundColor Blue
-try {
-    docker-compose build --quiet 2>$null
-}
-catch {
-    Write-Host "⚠ docker-compose build skipped" -ForegroundColor Yellow
+$buildResult = docker-compose build --quiet 2>&1
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "[!] docker-compose build skipped or failed" -ForegroundColor Yellow
 }
 Write-Host ""
 
@@ -137,25 +144,30 @@ foreach ($image in $Images) {
 
 # Generate summary report
 $SummaryFile = Join-Path $OutputDir "summary_$Timestamp.txt"
-$summaryContent = @"
-=============================================
-   TRIVY SCAN SUMMARY REPORT
-=============================================
-Date: $(Get-Date)
-Severity Filter: $Severity
 
-Images Scanned:
-$(($Images | ForEach-Object { "  - $_" }) -join "`n")
+$summaryLines = @()
+$summaryLines += "============================================="
+$summaryLines += "   TRIVY SCAN SUMMARY REPORT"
+$summaryLines += "============================================="
+$summaryLines += "Date: $(Get-Date)"
+$summaryLines += "Severity Filter: $Severity"
+$summaryLines += ""
+$summaryLines += "Images Scanned:"
+foreach ($img in $Images) {
+    $summaryLines += "  - $img"
+}
+$summaryLines += ""
+$summaryLines += "Results:"
+foreach ($res in $ScanResults) {
+    $summaryLines += "  - $($res.Image): $($res.Status)"
+}
+$summaryLines += ""
+$summaryLines += "Failed Scans: $($script:FailedScans)"
+$summaryLines += ""
+$summaryLines += "Reports saved in: $OutputDir"
+$summaryLines += "============================================="
 
-Results:
-$(($ScanResults | ForEach-Object { "  - $($_.Image): $($_.Status)" }) -join "`n")
-
-Failed Scans: $FailedScans
-
-Reports saved in: $OutputDir
-=============================================
-"@
-
+$summaryContent = $summaryLines -join "`r`n"
 Set-Content -Path $SummaryFile -Value $summaryContent
 
 Write-Host "=============================================" -ForegroundColor Blue
@@ -167,9 +179,10 @@ Write-Host $OutputDir -ForegroundColor Green
 Write-Host "Summary: " -NoNewline
 Write-Host $SummaryFile -ForegroundColor Green
 
-if ($FailedScans -gt 0) {
-    Write-Host "⚠ $FailedScans image(s) failed to scan" -ForegroundColor Red
+if ($script:FailedScans -gt 0) {
+    Write-Host "[!] $($script:FailedScans) image(s) failed to scan" -ForegroundColor Red
     exit 1
 }
 
-Write-Host "✓ All scans completed successfully" -ForegroundColor Green
+Write-Host "[OK] All scans completed successfully" -ForegroundColor Green
+exit 0
