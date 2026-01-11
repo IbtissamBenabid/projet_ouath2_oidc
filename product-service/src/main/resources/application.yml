@@ -22,28 +22,6 @@ spring:
           issuer-uri: ${SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI:http://localhost:8088/realms/microservices-realm}
           jwk-set-uri: ${SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI:http://localhost:8088/realms/microservices-realm/protocol/openid-connect/certs}
 
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,metrics,prometheus
-  endpoint:
-    health:
-      show-details: always
-      show-components: always
-  info:
-    env:
-      enabled: true
-  health:
-    db:
-      enabled: true
-
-info:
-  app:
-    name: Product Service
-    description: Microservice for product management
-    version: 1.0.0
-
 logging:
   level:
     ma.enset.productservice: DEBUG

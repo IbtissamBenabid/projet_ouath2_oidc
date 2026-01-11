@@ -16,9 +16,6 @@ public class SecurityConfig {
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .authorizeExchange(exchanges -> exchanges
                         .pathMatchers("/actuator/**").permitAll()
-                        .pathMatchers("/dashboard/**").permitAll()
-                        .pathMatchers("/static/**").permitAll()
-                        .pathMatchers("/health-dashboard.html").permitAll()
                         .anyExchange().authenticated())
                 .oauth2ResourceServer(
                         oauth2 -> oauth2.jwt(org.springframework.security.config.Customizer.withDefaults()));

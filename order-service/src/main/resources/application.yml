@@ -25,28 +25,6 @@ product:
   service:
     url: ${PRODUCT_SERVICE_URL:http://localhost:8081}
 
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,metrics,prometheus
-  endpoint:
-    health:
-      show-details: always
-      show-components: always
-  info:
-    env:
-      enabled: true
-  health:
-    db:
-      enabled: true
-
-info:
-  app:
-    name: Order Service
-    description: Microservice for order management
-    version: 1.0.0
-
 logging:
   level:
     ma.enset.orderservice: DEBUG
