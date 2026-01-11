@@ -33,18 +33,18 @@ jobs:
       - name: Build Product Service
         run: |
           cd product-service
+          chmod +x mvnw
           ./mvnw clean package -DskipTests
-
       - name: Build Order Service
         run: |
           cd order-service
+          chmod +x mvnw
           ./mvnw clean package -DskipTests
-
       - name: Build Gateway
         run: |
           cd gateway
+          chmod +x mvnw
           ./mvnw clean package -DskipTests
-
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
@@ -57,7 +57,6 @@ jobs:
           cd react-app
           npm ci
           npm run build
-
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -67,7 +66,6 @@ jobs:
             order-service/target/*.jar
             gateway/target/*.jar
             react-app/build/
-
   # ===========================================
   # OWASP Dependency Check
   # ===========================================
@@ -90,18 +88,18 @@ jobs:
       - name: Run OWASP Dependency Check - Product Service
         run: |
           cd product-service
+          chmod +x mvnw
           ./mvnw dependency-check:check || true
-
       - name: Run OWASP Dependency Check - Order Service
         run: |
           cd order-service
+          chmod +x mvnw
           ./mvnw dependency-check:check || true
-
       - name: Run OWASP Dependency Check - Gateway
         run: |
           cd gateway
+          chmod +x mvnw
           ./mvnw dependency-check:check || true
-
       - name: Upload Dependency Check Reports
         uses: actions/upload-artifact@v4
         with:
@@ -139,6 +137,7 @@ jobs:
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         run: |
           cd product-service
+          chmod +x mvnw
           ./mvnw sonar:sonar \
             -Dsonar.projectKey=product-service \
             -Dsonar.host.url=$SONAR_HOST_URL \
@@ -151,6 +150,7 @@ jobs:
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         run: |
           cd order-service
+          chmod +x mvnw
           ./mvnw sonar:sonar \
             -Dsonar.projectKey=order-service \
             -Dsonar.host.url=$SONAR_HOST_URL \
@@ -169,11 +169,38 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Download build artifacts
-        uses: actions/download-artifact@v4
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
         with:
-          name: build-artifacts
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: maven
 
+      - name: Build Product Service JAR
+        run: |
+          cd product-service
+          chmod +x mvnw
+          ./mvnw clean package -DskipTests
+      - name: Build Order Service JAR
+        run: |
+          cd order-service
+          chmod +x mvnw
+          ./mvnw clean package -DskipTests
+      - name: Build Gateway JAR
+        run: |
+          cd gateway
+          chmod +x mvnw
+          ./mvnw clean package -DskipTests
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Build React App
+        run: |
+          cd react-app
+          npm ci
+          npm run build
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -239,7 +266,6 @@ jobs:
           docker load --input /tmp/order-service.tar
           docker load --input /tmp/gateway.tar
           docker load --input /tmp/react-app.tar
-
       - name: Install Trivy
         run: |
           sudo apt-get install wget apt-transport-https gnupg lsb-release -y
@@ -247,7 +273,6 @@ jobs:
           echo deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main | sudo tee -a /etc/apt/sources.list.d/trivy.list
           sudo apt-get update
           sudo apt-get install trivy -y
-
       - name: Create reports directory
         run: mkdir -p security-reports/trivy
 
@@ -287,7 +312,6 @@ jobs:
           echo "- order-service:latest" >> security-reports/trivy/SUMMARY.md
           echo "- gateway:latest" >> security-reports/trivy/SUMMARY.md
           echo "- react-app:latest" >> security-reports/trivy/SUMMARY.md
-
       - name: Upload Trivy Reports
         uses: actions/upload-artifact@v4
         with:
@@ -303,7 +327,6 @@ jobs:
           echo '```' >> $GITHUB_STEP_SUMMARY
           head -50 security-reports/trivy/product-service.txt >> $GITHUB_STEP_SUMMARY || echo "No vulnerabilities found" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
-
   # ===========================================
   # Security Summary
   # ===========================================
