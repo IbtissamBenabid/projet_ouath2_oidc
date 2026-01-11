@@ -1,0 +1,129 @@
+@startuml Class Diagram
+
+title Microservices E-commerce Application Class Diagram
+
+package "Order Service" {
+    class Order {
+        - id: Long
+        - date: LocalDate
+        - status: String
+        - amount: Double
+        - userId: String
+        - productItems: List<ProductItem>
+        + getters/setters
+    }
+
+    class ProductItem {
+        - productId: Long
+        - quantity: int
+        - price: double
+        + getters/setters
+    }
+
+    class OrderController {
+        + createOrder(order: Order): Order
+        + getOrder(id: Long): Order
+        + getOrders(): List<Order>
+        + updateOrder(id: Long, order: Order): Order
+        + deleteOrder(id: Long): void
+    }
+
+    class OrderService {
+        + saveOrder(order: Order): Order
+        + getOrderById(id: Long): Order
+        + getAllOrders(): List<Order>
+        + updateOrder(id: Long, order: Order): Order
+        + deleteOrder(id: Long): void
+        + validateOrder(order: Order): boolean
+        + calculateTotal(order: Order): double
+    }
+
+    class OrderRepository {
+        + save(order: Order): Order
+        + findById(id: Long): Optional<Order>
+        + findAll(): List<Order>
+        + deleteById(id: Long): void
+    }
+
+    Order "1" *-- "many" ProductItem : contains
+    OrderController --> OrderService : uses
+    OrderService --> OrderRepository : uses
+    OrderRepository --> Order : manages
+}
+
+package "Product Service" {
+    class Product {
+        - id: Long
+        - name: String
+        - description: String
+        - price: Double
+        - quantity: int
+        + getters/setters
+    }
+
+    class ProductController {
+        + createProduct(product: Product): Product
+        + getProduct(id: Long): Product
+        + getProducts(): List<Product>
+        + updateProduct(id: Long, product: Product): Product
+        + deleteProduct(id: Long): void
+        + checkStock(id: Long, quantity: int): boolean
+        + reduceStock(id: Long, quantity: int): void
+    }
+
+    class ProductService {
+        + saveProduct(product: Product): Product
+        + getProductById(id: Long): Product
+        + getAllProducts(): List<Product>
+        + updateProduct(id: Long, product: Product): Product
+        + deleteProduct(id: Long): Product
+        + checkStockAvailability(id: Long, quantity: int): boolean
+        + reduceStock(id: Long, quantity: int): void
+    }
+
+    class ProductRepository {
+        + save(product: Product): Product
+        + findById(id: Long): Optional<Product>
+        + findAll(): List<Product>
+        + deleteById(id: Long): void
+    }
+
+    ProductController --> ProductService : uses
+    ProductService --> ProductRepository : uses
+    ProductRepository --> Product : manages
+}
+
+package "Gateway Service" {
+    class GatewayApplication {
+        + main(args: String[]): void
+    }
+
+    class SecurityConfig {
+        + securityFilterChain(http: HttpSecurity): SecurityFilterChain
+        + jwtAuthConverter(): JwtAuthenticationConverter
+    }
+
+    class RouteConfig {
+        + customRouteLocator(builder: RouteLocatorBuilder): RouteLocator
+    }
+}
+
+package "Shared Models" {
+    class OrderRequest {
+        - productItems: List<ProductItemRequest>
+        + getters/setters
+    }
+
+    class ProductItemRequest {
+        - productId: Long
+        - quantity: int
+        + getters/setters
+    }
+}
+
+' Relationships between services
+OrderService --> ProductService : calls for stock verification
+OrderController ..> OrderRequest : uses
+ProductItemRequest ..|> ProductItem : similar structure
+
+@enduml

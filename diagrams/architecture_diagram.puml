@@ -1,0 +1,58 @@
+@startuml Architecture Diagram
+!define AWSPUML https://raw.githubusercontent.com/awslabs/aws-icons-for-plantuml/v18.0/dist
+!include AWSPUML/AWSCommon.puml
+!include AWSPUML/InternetOfThings/IoTHTTP2Protocol.puml
+!include AWSPUML/Database/RDS.puml
+!include AWSPUML/Compute/Lambda.puml
+!include AWSPUML/SecurityIdentityCompliance/Cognito.puml
+
+title Microservices E-commerce Application Architecture
+
+actor "User" as user
+rectangle "React Frontend" as frontend #LightBlue
+rectangle "API Gateway\n(Spring Cloud Gateway)\nPort: 8085" as gateway #LightGreen
+rectangle "Product Service\nPort: 8081" as product #LightYellow
+rectangle "Order Service\nPort: 8082" as order #LightYellow
+rectangle "Keycloak\nPort: 8088" as keycloak #LightCoral
+
+database "PostgreSQL\nproduct_db\nPort: 5432" as product_db #LightGray
+database "PostgreSQL\norder_db\nPort: 5432" as order_db #LightGray
+database "PostgreSQL\nkeycloak_db\nPort: 5432" as keycloak_db #LightGray
+
+user --> frontend : HTTP/HTTPS
+frontend --> gateway : HTTP/HTTPS
+gateway --> product : Routes requests
+gateway --> order : Routes requests
+gateway --> keycloak : Authentication
+
+product --> product_db : JPA/Hibernate
+order --> order_db : JPA/Hibernate
+keycloak --> keycloak_db : JPA/Hibernate
+
+order --> product : REST API calls\n(stock verification)
+
+note right of gateway
+  JWT Token Validation
+  Route to microservices
+  CORS Configuration
+end note
+
+note right of product
+  CRUD Products
+  Stock Management
+  JWT Security
+end note
+
+note right of order
+  CRUD Orders
+  Order Calculation
+  JWT Security
+end note
+
+note right of keycloak
+  OAuth2/OIDC
+  JWT Tokens
+  User Management
+end note
+
+@enduml

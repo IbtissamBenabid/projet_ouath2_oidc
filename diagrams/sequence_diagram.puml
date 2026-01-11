@@ -1,0 +1,50 @@
+@startuml Sequence Diagram - Order Creation Process
+
+title Order Creation Process Sequence Diagram
+
+actor User as user
+participant "React App" as react
+participant "API Gateway" as gateway
+participant "Order Service" as order_svc
+participant "Product Service" as product_svc
+database "Order DB" as order_db
+database "Product DB" as product_db
+
+== Authentication ==
+user -> react: 1. Login via Keycloak
+note right: OAuth2/OIDC flow
+
+== Order Initiation ==
+user -> react: 2. Select products & place order
+react -> gateway: 3. POST /orders\n(JWT token in header)
+
+== Gateway Processing ==
+gateway -> gateway: 4. Validate JWT & Route
+gateway -> order_svc: Forward request
+
+== Order Validation ==
+order_svc -> order_svc: 5. Validate order data
+
+== Stock Verification ==
+order_svc -> product_svc: 6. GET /products/{id}/stock?quantity=X\n(JWT token)
+product_svc -> product_svc: Check stock availability
+product_svc --> order_svc: 7. Return stock status (true/false)
+
+== Order Processing ==
+alt Stock Available
+    order_svc -> order_svc: 8. Calculate total amount\nSet order properties
+    order_svc -> order_db: Save order
+    order_svc -> product_svc: 9. PUT /products/{id}/reduce-stock?quantity=X
+    product_svc -> product_svc: Reduce stock quantity
+    product_svc -> product_db: Update stock
+    product_svc --> order_svc: 10. Stock reduced confirmation
+    order_svc --> gateway: 11. Return created order
+    gateway --> react: 12. Order created response
+    react --> user: 13. Display success message
+else Stock Not Available
+    order_svc --> gateway: Return error (insufficient stock)
+    gateway --> react: Error response
+    react --> user: Display error message
+end
+
+@enduml
