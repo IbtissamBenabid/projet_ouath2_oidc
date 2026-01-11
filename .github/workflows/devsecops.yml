@@ -33,16 +33,19 @@ jobs:
       - name: Build Product Service
         run: |
           cd product-service
+          chmod +x mvnw
           ./mvnw clean package -DskipTests
 
       - name: Build Order Service
         run: |
           cd order-service
+          chmod +x mvnw
           ./mvnw clean package -DskipTests
 
       - name: Build Gateway
         run: |
           cd gateway
+          chmod +x mvnw
           ./mvnw clean package -DskipTests
 
       - name: Set up Node.js
@@ -90,16 +93,19 @@ jobs:
       - name: Run OWASP Dependency Check - Product Service
         run: |
           cd product-service
+          chmod +x mvnw
           ./mvnw dependency-check:check || true
 
       - name: Run OWASP Dependency Check - Order Service
         run: |
           cd order-service
+          chmod +x mvnw
           ./mvnw dependency-check:check || true
 
       - name: Run OWASP Dependency Check - Gateway
         run: |
           cd gateway
+          chmod +x mvnw
           ./mvnw dependency-check:check || true
 
       - name: Upload Dependency Check Reports
@@ -139,6 +145,7 @@ jobs:
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         run: |
           cd product-service
+          chmod +x mvnw
           ./mvnw sonar:sonar \
             -Dsonar.projectKey=product-service \
             -Dsonar.host.url=$SONAR_HOST_URL \
@@ -151,6 +158,7 @@ jobs:
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         run: |
           cd order-service
+          chmod +x mvnw
           ./mvnw sonar:sonar \
             -Dsonar.projectKey=order-service \
             -Dsonar.host.url=$SONAR_HOST_URL \
@@ -179,16 +187,19 @@ jobs:
       - name: Build Product Service JAR
         run: |
           cd product-service
+          chmod +x mvnw
           ./mvnw clean package -DskipTests
 
       - name: Build Order Service JAR
         run: |
           cd order-service
+          chmod +x mvnw
           ./mvnw clean package -DskipTests
 
       - name: Build Gateway JAR
         run: |
           cd gateway
+          chmod +x mvnw
           ./mvnw clean package -DskipTests
 
       - name: Set up Node.js
