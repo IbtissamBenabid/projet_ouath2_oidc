@@ -21,6 +21,7 @@ function App({ keycloak }) {
             fetchProducts();
             fetchOrders();
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [keycloak.authenticated]);
 
     const handleError = (err, action) => {
