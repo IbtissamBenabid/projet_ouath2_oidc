@@ -1,0 +1,61 @@
+{
+    "realm": "microservices-realm",
+    "enabled": true,
+    "users": [
+        {
+            "username": "admin",
+            "enabled": true,
+            "credentials": [
+                {
+                    "type": "password",
+                    "value": "admin"
+                }
+            ],
+            "realmRoles": [
+                "ADMIN",
+                "CLIENT"
+            ]
+        },
+        {
+            "username": "user1",
+            "enabled": true,
+            "credentials": [
+                {
+                    "type": "password",
+                    "value": "user1"
+                }
+            ],
+            "realmRoles": [
+                "CLIENT"
+            ]
+        }
+    ],
+    "roles": {
+        "realm": [
+            {
+                "name": "ADMIN",
+                "description": "Administrator role"
+            },
+            {
+                "name": "CLIENT",
+                "description": "Client role"
+            }
+        ]
+    },
+    "clients": [
+        {
+            "clientId": "react-client",
+            "enabled": true,
+            "publicClient": true,
+            "directAccessGrantsEnabled": true,
+            "standardFlowEnabled": true,
+            "implicitFlowEnabled": false,
+            "redirectUris": [
+                "http://localhost:3000/*"
+            ],
+            "webOrigins": [
+                "*"
+            ]
+        }
+    ]
+}

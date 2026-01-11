@@ -1,0 +1,107 @@
+services:
+  postgres:
+    image: postgres:15
+    container_name: postgres-db
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password
+    volumes:
+      - ./init-db:/docker-entrypoint-initdb.d
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - microservices-net
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:23.0.7
+    container_name: keycloak
+    command: start-dev --import-realm
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak_db
+      KC_DB_USERNAME: admin
+      KC_DB_PASSWORD: password
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_HOSTNAME: localhost
+      KC_HOSTNAME_PORT: 8088
+      KC_HOSTNAME_STRICT: "false"
+      KC_HOSTNAME_STRICT_HTTPS: "false"
+    ports:
+      - "8088:8080"
+    volumes:
+      - ./init-db/realm-export.json:/opt/keycloak/data/import/realm.json
+    depends_on:
+      - postgres
+    networks:
+      - microservices-net
+
+  product-service:
+    build: ./product-service
+    container_name: product-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/product_db
+      SPRING_DATASOURCE_USERNAME: admin
+      SPRING_DATASOURCE_PASSWORD: password
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://localhost:8088/realms/microservices-realm
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/realms/microservices-realm/protocol/openid-connect/certs
+    ports:
+      - "8081:8081"
+    depends_on:
+      - postgres
+      - keycloak
+    networks:
+      - microservices-net
+
+  order-service:
+    build: ./order-service
+    container_name: order-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/order_db
+      SPRING_DATASOURCE_USERNAME: admin
+      SPRING_DATASOURCE_PASSWORD: password
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://localhost:8088/realms/microservices-realm
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/realms/microservices-realm/protocol/openid-connect/certs
+      PRODUCT_SERVICE_URL: http://product-service:8081
+    ports:
+      - "8082:8082"
+    depends_on:
+      - postgres
+      - keycloak
+    networks:
+      - microservices-net
+
+  gateway:
+    build: ./gateway
+    container_name: gateway
+    environment:
+      KEYCLOAK_ISSUER_URI: http://localhost:8088/realms/microservices-realm
+      KEYCLOAK_JWK_SET_URI: http://keycloak:8080/realms/microservices-realm/protocol/openid-connect/certs
+      PRODUCT_SERVICE_URI: http://product-service:8081
+      ORDER_SERVICE_URI: http://order-service:8082
+    ports:
+      - "8085:8085"
+    depends_on:
+      - keycloak
+      - product-service
+      - order-service
+    networks:
+      - microservices-net
+
+  react-app:
+    build: ./react-app
+    container_name: react-app
+    ports:
+      - "3000:80"
+    depends_on:
+      - gateway
+    networks:
+      - microservices-net
+
+networks:
+  microservices-net:
+    driver: bridge
+
+volumes:
+  postgres_data:
